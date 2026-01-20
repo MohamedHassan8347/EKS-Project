@@ -30,6 +30,13 @@ jobs:
           role-to-assume: arn:aws:iam::057773388128:role/github-actions-eks-terraform
           aws-region: eu-north-1
 
+       - name: Checkov (Terraform security scan)
+         uses: bridgecrewio/checkov-action@v12
+          with:
+           directory: infra
+           framework: terraform
+           quiet: true
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
