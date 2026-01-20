@@ -1,6 +1,11 @@
 variable "cluster_name" { type = string }
 variable "cluster_version" { type = string }
 
+variable "github_actions_role_arn" {
+  description = "IAM role ARN used by GitHub Actions (OIDC) to manage the cluster"
+  type        = string
+}
+
 variable "vpc_id" { type = string }
 variable "private_subnet_ids" { type = list(string) }
 

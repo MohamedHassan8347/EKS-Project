@@ -1,15 +1,7 @@
-locals {
-  name = "${var.project_name}-${var.env}"
-  tags = {
-    Project = var.project_name
-    Env     = var.env
-  }
-}
-
 module "vpc" {
   source = "../../modules/vpc"
 
-  name            = local.name
+  name            = var.vpc_name
   vpc_cidr        = var.vpc_cidr
   azs             = var.azs
   public_subnets  = var.public_subnets
@@ -18,23 +10,25 @@ module "vpc" {
   enable_nat_gateway = var.enable_nat_gateway
   single_nat_gateway = var.single_nat_gateway
 
-  tags = local.tags
+  tags = var.tags
 }
 
 module "eks" {
   source = "../../modules/eks"
 
-  cluster_name       = local.name
-  cluster_version    = var.cluster_version
+  cluster_name    = var.cluster_name
+  cluster_version = var.cluster_version
+
   vpc_id             = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnets
 
   instance_types = var.instance_types
-  min_size       = 1
-  max_size       = 2
-  desired_size   = 1
+  min_size       = var.min_size
+  max_size       = var.max_size
+  desired_size   = var.desired_size
 
-  admin_principal_arn = var.admin_principal_arn
+  admin_principal_arn     = var.admin_principal_arn
+  github_actions_role_arn = var.github_actions_role_arn
 
-  tags = local.tags
+  tags = var.tags
 }

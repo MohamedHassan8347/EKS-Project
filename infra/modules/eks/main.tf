@@ -13,19 +13,27 @@ module "eks" {
   cluster_endpoint_private_access = true
   cluster_endpoint_public_access  = true
 
-  # Ensure the creator can administer (helpful during bootstrap)
-  enable_cluster_creator_admin_permissions = true
+  # IMPORTANT: don't let "whoever ran apply" become the permanent admin
+  enable_cluster_creator_admin_permissions = false
 
-  # Explicit access entry so your IAM user can use kubectl
+  # Explicit, stable access for both you and CI
   access_entries = {
-    admin = {
+    admin_user = {
       principal_arn = var.admin_principal_arn
       policy_associations = {
-        admin = {
-          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-          access_scope = {
-            type = "cluster"
-          }
+        cluster_admin = {
+          policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = { type = "cluster" }
+        }
+      }
+    }
+
+    github_ci = {
+      principal_arn = var.github_actions_role_arn
+      policy_associations = {
+        cluster_admin = {
+          policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = { type = "cluster" }
         }
       }
     }
@@ -42,3 +50,4 @@ module "eks" {
 
   tags = var.tags
 }
+
