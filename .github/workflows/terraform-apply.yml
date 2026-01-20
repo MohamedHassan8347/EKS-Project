@@ -1,7 +1,7 @@
-name: Terraform Apply (Manual)
+name: terraform-apply
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -10,7 +10,9 @@ permissions:
 jobs:
   apply:
     runs-on: ubuntu-latest
-    environment: dev
+    defaults:
+      run:
+        working-directory: infra/envs/dev
 
     steps:
       - name: Checkout
@@ -28,7 +30,7 @@ jobs:
           terraform_version: 1.9.8
 
       - name: Terraform init
-        run: terraform -chdir=infra/envs/dev init -input=false
+        run: terraform init -input=false
 
       - name: Terraform apply
-        run: terraform -chdir=infra/envs/dev apply -input=false -auto-approve
+        run: terraform apply -auto-approve -input=false
