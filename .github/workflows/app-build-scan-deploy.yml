@@ -1,0 +1,77 @@
+name: app-build-scan-deploy
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "app/**"
+      - "k8s/**"
+      - ".github/workflows/app-build-scan-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: eu-north-1
+  AWS_ACCOUNT_ID: 057773388128
+  ECR_REPOSITORY: eks-real-app
+  EKS_CLUSTER_NAME: eks-portfolio-dev
+  K8S_NAMESPACE: demo
+
+jobs:
+  build_scan_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::057773388128:role/github-actions-eks-terraform
+          aws-region: eu-north-1
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image
+        run: |
+          IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${GITHUB_SHA}"
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          docker build -t "$IMAGE_URI" ./app
+
+      - name: Trivy scan (image)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE_URI }}
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
+
+      - name: Push image to ECR
+        run: |
+          docker push "${IMAGE_URI}"
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region "${AWS_REGION}" --name "${EKS_CLUSTER_NAME}"
+
+      - name: Deploy manifests (patch image tag)
+        run: |
+          mkdir -p /tmp/k8s
+          cp -r k8s/demo/* /tmp/k8s/
+
+          # Patch the image tag inside the deployment
+          sed -i "s|:REPLACEME|:${GITHUB_SHA}|g" /tmp/k8s/deployment-real-app.yaml
+
+          kubectl apply -f /tmp/k8s/
+
+      - name: Rollout status
+        run: |
+          kubectl -n "${K8S_NAMESPACE}" rollout status deploy/real-app --timeout=180s
+          kubectl -n "${K8S_NAMESPACE}" get pods -l app=real-app -o wide
