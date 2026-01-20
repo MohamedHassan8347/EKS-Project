@@ -1,20 +1,24 @@
-name: Terraform Plan
+name: terraform-plan
 
 on:
   pull_request:
     paths:
       - "infra/**"
-      - ".github/workflows/terraform-*.yml"
-  workflow_dispatch: {}
+  push:
+    branches: ["main"]
+    paths:
+      - "infra/**"
 
 permissions:
   id-token: write
   contents: read
-  pull-requests: write
 
 jobs:
   plan:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/envs/dev
 
     steps:
       - name: Checkout
@@ -32,13 +36,13 @@ jobs:
           terraform_version: 1.9.8
 
       - name: Terraform fmt
-        run: terraform -chdir=infra/envs/dev fmt -recursive -check
+        run: terraform fmt -recursive -check
 
       - name: Terraform init
-        run: terraform -chdir=infra/envs/dev init -input=false
+        run: terraform init -input=false
 
       - name: Terraform validate
-        run: terraform -chdir=infra/envs/dev validate
+        run: terraform validate
 
       - name: Terraform plan
-        run: terraform -chdir=infra/envs/dev plan -input=false -no-color
+        run: terraform plan -input=false -no-color
