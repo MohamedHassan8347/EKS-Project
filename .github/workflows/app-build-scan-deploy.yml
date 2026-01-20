@@ -1,4 +1,4 @@
-name: App: build, scan, push, deploy
+name: "App: build, scan, push, deploy"
 
 on:
   push:
