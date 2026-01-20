@@ -1,0 +1,16 @@
+variable "project_name" { type = string }
+variable "env" { type = string }
+variable "aws_region" { type = string }
+
+variable "vpc_cidr" { type = string }
+variable "azs" { type = list(string) }
+variable "public_subnets" { type = list(string) }
+variable "private_subnets" { type = list(string) }
+
+variable "enable_nat_gateway" { type = bool }
+variable "single_nat_gateway" { type = bool }
+
+variable "cluster_version" { type = string }
+variable "instance_types" { type = list(string) }
+
+variable "admin_principal_arn" { type = string }
