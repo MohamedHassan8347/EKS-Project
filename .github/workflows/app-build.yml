@@ -1,0 +1,34 @@
+name: Build and Push App Image
+
+on:
+  push:
+    paths:
+      - app/**
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::057773388128:role/github-actions-eks-terraform
+          aws-region: eu-north-1
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        run: |
+          IMAGE_URI=057773388128.dkr.ecr.eu-north-1.amazonaws.com/eks-real-app:latest
+          docker build -t $IMAGE_URI ./app
+          docker push $IMAGE_URI
