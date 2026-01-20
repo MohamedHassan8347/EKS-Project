@@ -16,3 +16,22 @@ override.tf.json
 .DS_Store
 .vscode/
 github-actions-terraform-trust.json
+
+# Local IAM trust policies / scratch
+github-actions-terraform-trust.json
+
+# Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.*
+**/tfplan
+**/*.tfplan
+**/crash.log
+
+# macOS
+.DS_Store
+
+# Local kube / helm caches
+**/.kube/
+**/.helm/

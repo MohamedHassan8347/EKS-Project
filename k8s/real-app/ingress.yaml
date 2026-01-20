@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: real-app
+  namespace: real-app
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    external-dns.alpha.kubernetes.io/hostname: app.mhecsproject.com
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - app.mhecsproject.com
+      secretName: real-app-tls
+  rules:
+    - host: app.mhecsproject.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: real-app
+                port:
+                  number: 80

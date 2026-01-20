@@ -1,0 +1,13 @@
+provider: aws
+
+policy: upsert-only
+
+registry: txt
+txtOwnerId: eks-portfolio-dev
+
+domainFilters:
+  - mhecsproject.com
+
+serviceAccount:
+  create: false
+  name: external-dns
