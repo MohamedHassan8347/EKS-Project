@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    external-dns.alpha.kubernetes.io/hostname: demo.mhecsproject.com
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"networking.k8s.io/v1","kind":"Ingress","metadata":{"annotations":{"cert-manager.io/cluster-issuer":"letsencrypt-prod","external-dns.alpha.kubernetes.io/hostname":"demo.mhecsproject.com"},"name":"final-demo","namespace":"demo"},"spec":{"ingressClassName":"nginx","rules":[{"host":"demo.mhecsproject.com","http":{"paths":[{"backend":{"service":{"name":"echo","port":{"number":80}}},"path":"/","pathType":"Prefix"}]}}],"tls":[{"hosts":["demo.mhecsproject.com"],"secretName":"demo-tls"}]}}
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  creationTimestamp: "2026-01-20T16:45:00Z"
+  generation: 1
+  name: final-demo
+  namespace: demo
+  resourceVersion: "22876"
+  uid: 32a262a4-a2c8-40f0-b827-56b465c35ff0
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: demo.mhecsproject.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: echo
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - demo.mhecsproject.com
+    secretName: demo-tls
+status:
+  loadBalancer:
+    ingress:
+    - hostname: ad3753d6b296a47e089d6d1071d562ed-410934038.eu-north-1.elb.amazonaws.com
