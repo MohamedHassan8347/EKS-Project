@@ -1,11 +1,12 @@
 {
   "name": "eks-real-app",
   "version": "1.0.0",
-  "description": "Simple Node HTTP service for EKS deployment",
+  "private": true,
   "main": "server.js",
-  "type": "commonjs",
   "scripts": {
     "start": "node server.js"
   },
-  "dependencies": {}
+  "dependencies": {
+    "tar": "7.5.3"
+  }
 }
