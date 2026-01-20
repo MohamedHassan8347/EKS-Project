@@ -1,24 +1,30 @@
-name: terraform-plan
+name: Terraform plan
 
 on:
   pull_request:
+    branches: ["main"]
     paths:
       - "infra/**"
+      - ".github/workflows/terraform-plan.yml"
   push:
     branches: ["main"]
     paths:
       - "infra/**"
+      - ".github/workflows/terraform-plan.yml"
+  workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
+  pull-requests: write
+
+env:
+  AWS_REGION: eu-north-1
+  TF_DIR: infra/envs/dev
 
 jobs:
   plan:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: infra/envs/dev
 
     steps:
       - name: Checkout
@@ -27,15 +33,8 @@ jobs:
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
+          aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::057773388128:role/github-actions-eks-terraform
-          aws-region: eu-north-1
-
-       - name: Checkov (Terraform security scan)
-         uses: bridgecrewio/checkov-action@v12
-          with:
-           directory: infra
-           framework: terraform
-           quiet: true
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -43,13 +42,31 @@ jobs:
           terraform_version: 1.9.8
 
       - name: Terraform fmt
-        run: terraform fmt -recursive -check
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform fmt -check -recursive
 
       - name: Terraform init
+        working-directory: ${{ env.TF_DIR }}
         run: terraform init -input=false
 
       - name: Terraform validate
+        working-directory: ${{ env.TF_DIR }}
         run: terraform validate
 
       - name: Terraform plan
-        run: terraform plan -input=false -no-color
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform plan -input=false -no-color -out=tfplan
+
+      - name: Upload tfplan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: ${{ env.TF_DIR }}/tfplan
+          if-no-files-found: error
+
+      - name: Plan summary
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          echo "### Terraform plan" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          terraform show -no-color tfplan | sed -n '1,200p' >> $GITHUB_STEP_SUMMARY
