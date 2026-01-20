@@ -1,4 +1,4 @@
-name: App build, scan, push, deploy
+name: "App build, scan, push, deploy"
 
 on:
   push:
@@ -36,27 +36,26 @@ jobs:
           role-to-assume: arn:aws:iam::057773388128:role/github-actions-eks-terraform
 
       - name: Set image vars
-        id: vars
         run: |
-          echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
-          echo "ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_ENV
-          echo "ECR_REGISTRY=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com" >> $GITHUB_ENV
-          echo "IMAGE_TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
-          echo "IMAGE_URI=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${GITHUB_SHA::7}" >> $GITHUB_ENV
+          echo "SHORT_SHA=${GITHUB_SHA:0:7}" >> "$GITHUB_ENV"
+          echo "ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)" >> "$GITHUB_ENV"
+          echo "ECR_REGISTRY=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com" >> "$GITHUB_ENV"
+          echo "IMAGE_LOCAL=eks-real-app:${GITHUB_SHA:0:7}" >> "$GITHUB_ENV"
+          echo "IMAGE_URI=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${GITHUB_SHA:0:7}" >> "$GITHUB_ENV"
 
-      - name: Build image (local)
+      - name: Build image (LOCAL TAG)
         run: |
-          docker build -t "${IMAGE_URI}" ./app
+          docker build -t "${IMAGE_LOCAL}" ./app
 
-      - name: Print package.json from built image (local)
+      - name: Print /app/package.json from LOCAL image
         run: |
-          echo "Printing /app/package.json from locally-built image: ${IMAGE_URI}"
-          docker run --rm "${IMAGE_URI}" cat /app/package.json
+          echo "Printing /app/package.json from local image: ${IMAGE_LOCAL}"
+          docker run --rm "${IMAGE_LOCAL}" cat /app/package.json
 
-      - name: Trivy scan image (fail on HIGH/CRITICAL)
+      - name: Trivy scan LOCAL image (fail on HIGH/CRITICAL)
         uses: aquasecurity/trivy-action@0.30.0
         with:
-          image-ref: ${{ env.IMAGE_URI }}
+          image-ref: ${{ env.IMAGE_LOCAL }}
           format: table
           exit-code: "1"
           ignore-unfixed: true
@@ -69,9 +68,17 @@ jobs:
           aws ecr get-login-password --region "${AWS_REGION}" \
             | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
 
-      - name: Push image to ECR
+      - name: Tag + push to ECR
         run: |
+          docker tag "${IMAGE_LOCAL}" "${IMAGE_URI}"
           docker push "${IMAGE_URI}"
+
+      - name: Install kubectl
+        run: |
+          curl -sSL -o kubectl "https://dl.k8s.io/release/v1.29.0/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/kubectl
+          kubectl version --client
 
       - name: Update kubeconfig
         run: |
@@ -79,10 +86,7 @@ jobs:
 
       - name: Deploy (set image + rollout)
         run: |
-          kubectl -n "${K8S_NAMESPACE}" set image deployment/"${DEPLOYMENT_NAME}" "${CONTAINER_NAME}"="${IMAGE_URI}"
-          kubectl -n "${K8S_NAMESPACE}" rollout status deployment/"${DEPLOYMENT_NAME}"
-
-      - name: Summary
-        run: |
-          echo "Deployed image: ${IMAGE_URI}" >> $GITHUB_STEP_SUMMARY
-          echo "Endpoint: https://app.mhecsproject.com/version" >> $GITHUB_STEP_SUMMARY
+          kubectl -n "${K8S_NAMESPACE}" set image deployment/"${DEPLOYMENT_NAME}" \
+            "${CONTAINER_NAME}"="${IMAGE_URI}"
+          kubectl -n "${K8S_NAMESPACE}" rollout status deployment/"${DEPLOYMENT_NAME}" --timeout=300s
+          kubectl -n "${K8S_NAMESPACE}" get pods -l app="${DEPLOYMENT_NAME}" -o wide
