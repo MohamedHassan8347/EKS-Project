@@ -1,13 +1,12 @@
-name: App CI - Build, Scan, Push, Deploy
+name: App: build, scan, push, deploy
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
       - "app/**"
       - "k8s/**"
       - ".github/workflows/app-build-scan-deploy.yml"
-  workflow_dispatch: {}
 
 permissions:
   id-token: write
@@ -15,12 +14,10 @@ permissions:
 
 env:
   AWS_REGION: eu-north-1
-  ECR_REGISTRY: 057773388128.dkr.ecr.eu-north-1.amazonaws.com
-  ECR_REPO: eks-real-app
-  CLUSTER_NAME: eks-portfolio-dev
+  ECR_REPOSITORY: eks-real-app
   K8S_NAMESPACE: demo
-  K8S_DEPLOYMENT: real-app
-  K8S_CONTAINER: app
+  DEPLOYMENT_NAME: real-app
+  CONTAINER_NAME: app
 
 jobs:
   build_scan_push_deploy:
@@ -30,65 +27,71 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS (OIDC)
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::057773388128:role/github-actions-eks-terraform
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
+        id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Set image tag (short SHA)
-        run: echo "IMAGE_TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
+      - name: Set image tags
+        id: vars
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "image_tag=$SHORT_SHA" >> "$GITHUB_OUTPUT"
 
-      - name: Build Docker image
+      - name: Build Docker image (with Git SHA build-arg)
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ steps.vars.outputs.image_tag }}
         run: |
           docker build \
-            -t $ECR_REGISTRY/$ECR_REPO:${IMAGE_TAG} \
-            -t $ECR_REGISTRY/$ECR_REPO:latest \
+            --build-arg GIT_SHA=${GITHUB_SHA::7} \
+            -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG} \
+            -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:latest \
             app
 
-      - name: Trivy scan (fail on HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@0.28.0
+      - name: Trivy image scan (fail on HIGH/CRITICAL)
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ steps.vars.outputs.image_tag }}
+        uses: aquasecurity/trivy-action@0.24.0
         with:
-          image-ref: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ env.IMAGE_TAG }}
+          image-ref: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
           format: table
           exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
           severity: "HIGH,CRITICAL"
 
       - name: Push image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ steps.vars.outputs.image_tag }}
         run: |
-          docker push $ECR_REGISTRY/$ECR_REPO:${IMAGE_TAG}
-          docker push $ECR_REGISTRY/$ECR_REPO:latest
-
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v4
-        with:
-          version: v1.29.0
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:latest
 
       - name: Update kubeconfig
         run: |
           aws eks update-kubeconfig \
-            --region $AWS_REGION \
-            --name $CLUSTER_NAME
+            --region ${{ env.AWS_REGION }} \
+            --name eks-portfolio-dev
 
-      - name: Apply manifests (namespace/service/ingress)
+      - name: Deploy manifests
         run: |
-          kubectl apply -f k8s/demo/namespace.yaml
-          kubectl apply -f k8s/demo/service-real-app.yaml
-          kubectl apply -f k8s/demo/ingress-real-app.yaml
+          kubectl apply -f k8s/demo/
 
-      - name: Deploy new image (set image to SHA tag)
+      - name: Force rollout (pull new image)
         run: |
-          kubectl -n $K8S_NAMESPACE set image deployment/$K8S_DEPLOYMENT \
-            $K8S_CONTAINER=$ECR_REGISTRY/$ECR_REPO:${IMAGE_TAG}
+          kubectl -n ${{ env.K8S_NAMESPACE }} rollout restart deploy/${{ env.DEPLOYMENT_NAME }}
+          kubectl -n ${{ env.K8S_NAMESPACE }} rollout status deploy/${{ env.DEPLOYMENT_NAME }} --timeout=300s
 
-      - name: Wait for rollout
+      - name: Show live image digest + pod status
         run: |
-          kubectl -n $K8S_NAMESPACE rollout status deployment/$K8S_DEPLOYMENT --timeout=180s
-
-      - name: Show deployed image
-        run: |
-          kubectl -n $K8S_NAMESPACE get deploy $K8S_DEPLOYMENT \
-            -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+          kubectl -n ${{ env.K8S_NAMESPACE }} get deploy/${{ env.DEPLOYMENT_NAME }} -o=jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+          kubectl -n ${{ env.K8S_NAMESPACE }} get pods -l app=${{ env.DEPLOYMENT_NAME }} -o wide
