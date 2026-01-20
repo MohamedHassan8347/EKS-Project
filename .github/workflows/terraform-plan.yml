@@ -1,0 +1,44 @@
+name: Terraform Plan
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform-*.yml"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::057773388128:role/github-actions-eks-terraform
+          aws-region: eu-north-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Terraform fmt
+        run: terraform -chdir=infra/envs/dev fmt -recursive -check
+
+      - name: Terraform init
+        run: terraform -chdir=infra/envs/dev init -input=false
+
+      - name: Terraform validate
+        run: terraform -chdir=infra/envs/dev validate
+
+      - name: Terraform plan
+        run: terraform -chdir=infra/envs/dev plan -input=false -no-color
