@@ -1,11 +1,13 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
-COPY package.json .
-RUN npm install --omit=dev
+# Update npm so transitive npm deps like cross-spawn/glob/tar are pulled at patched versions
+RUN npm install -g npm@latest
 
-COPY server.js .
+# Copy app code (no dependencies needed for this simple HTTP server)
+COPY server.js ./server.js
+COPY package.json ./package.json
 
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
