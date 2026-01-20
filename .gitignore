@@ -15,3 +15,4 @@ override.tf.json
 # OS / editor
 .DS_Store
 .vscode/
+github-actions-terraform-trust.json
