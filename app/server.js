@@ -1,24 +1,54 @@
 const http = require('http');
+const client = require('prom-client');
 
-const VERSION = "v4-gitops-final";
+const VERSION = "v5-metrics";
 
-const server = http.createServer((req, res) => {
+client.collectDefaultMetrics();
+
+const httpRequestsTotal = new client.Counter({
+  name: 'http_requests_total',
+  help: 'Total HTTP requests',
+  labelNames: ['method', 'path', 'status']
+});
+
+const server = http.createServer(async (req, res) => {
+  // health
   if (req.url === '/health') {
     res.writeHead(200);
-    return res.end('ok');
+    res.end('ok');
+    httpRequestsTotal.inc({ method: req.method, path: '/health', status: 200 });
+    return;
   }
 
+  // version
   if (req.url === '/version') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({
+    res.end(JSON.stringify({
       service: "eks-real-app",
       version: VERSION,
       deployedAt: new Date().toISOString()
     }));
+    httpRequestsTotal.inc({ method: req.method, path: '/version', status: 200 });
+    return;
+  }
+
+  // prometheus metrics
+  if (req.url === '/metrics') {
+    try {
+      res.writeHead(200, { 'Content-Type': client.register.contentType });
+      res.end(await client.register.metrics());
+      httpRequestsTotal.inc({ method: req.method, path: '/metrics', status: 200 });
+    } catch (e) {
+      res.writeHead(500);
+      res.end('metrics error');
+      httpRequestsTotal.inc({ method: req.method, path: '/metrics', status: 500 });
+    }
+    return;
   }
 
   res.writeHead(200);
   res.end('Hello from EKS GitOps 🚀');
+  httpRequestsTotal.inc({ method: req.method, path: req.url, status: 200 });
 });
 
 server.listen(3000, () => {
