@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# If your YAML already includes "namespace: demo" in every resource,
+# you can omit this. Keeping it here is fine; Kustomize will set namespace
+# for resources that don't specify one.
+namespace: demo
+
+resources:
+  - namespace.yaml
+  - deployment-echo.yaml
+  - service-echo.yaml
+  - ingress-echo.yaml
+  - deployment-real-app.yaml
+  - service-real-app.yaml
+  - ingress-real-app.yaml
