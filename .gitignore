@@ -38,7 +38,7 @@ github-actions-terraform-trust.json
 
 # Node
 app/node_modules/
-app/package-lock.json
+
 
 # Local helm/k8s working dirs if you don't want to commit them
 # (REMOVE these two lines if you DO want them in GitOps)
