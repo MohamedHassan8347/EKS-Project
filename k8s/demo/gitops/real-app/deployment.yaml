@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: real-app
   namespace: demo
+  labels:
+    app: real-app
 spec:
   replicas: 1
   selector:

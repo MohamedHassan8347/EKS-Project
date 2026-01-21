@@ -3,6 +3,8 @@ kind: Ingress
 metadata:
   name: real-app
   namespace: demo
+  labels:
+    app: real-app
   annotations:
     external-dns.alpha.kubernetes.io/hostname: app.mhecsproject.com
     cert-manager.io/cluster-issuer: letsencrypt-prod
