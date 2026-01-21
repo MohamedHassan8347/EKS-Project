@@ -1,4 +1,4 @@
-name: "App build, scan, push, deploy"
+name: "App build, scan, push, deploy (GitOps)"
 
 on:
   push:
@@ -11,18 +11,15 @@ on:
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
 
 env:
   AWS_REGION: eu-north-1
-  CLUSTER_NAME: eks-portfolio-dev
   ECR_REPOSITORY: eks-real-app
-  K8S_NAMESPACE: demo
-  DEPLOYMENT_NAME: real-app
-  CONTAINER_NAME: app
+  GITOPS_KUSTOMIZATION: k8s/demo/gitops/real-app/kustomization.yaml
 
 jobs:
-  build_scan_push_deploy:
+  build_scan_push_and_bump_gitops:
     runs-on: ubuntu-latest
 
     steps:
@@ -47,11 +44,6 @@ jobs:
         run: |
           docker build -t "${IMAGE_LOCAL}" ./app
 
-      - name: Print /app/package.json from LOCAL image
-        run: |
-          echo "Printing /app/package.json from local image: ${IMAGE_LOCAL}"
-          docker run --rm "${IMAGE_LOCAL}" cat /app/package.json
-
       - name: Trivy scan LOCAL image (fail on HIGH/CRITICAL)
         uses: aquasecurity/trivy-action@0.30.0
         with:
@@ -73,20 +65,20 @@ jobs:
           docker tag "${IMAGE_LOCAL}" "${IMAGE_URI}"
           docker push "${IMAGE_URI}"
 
-      - name: Install kubectl
+      - name: Bump GitOps image tag (kustomize)
         run: |
-          curl -sSL -o kubectl "https://dl.k8s.io/release/v1.29.0/bin/linux/amd64/kubectl"
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/kubectl
-          kubectl version --client
+          echo "Updating ${GITOPS_KUSTOMIZATION} -> newTag: ${SHORT_SHA}"
+          sed -i "s/^\\s*newTag:\\s*.*/    newTag: ${SHORT_SHA}/" "${GITOPS_KUSTOMIZATION}"
+          echo "Result:"
+          cat "${GITOPS_KUSTOMIZATION}"
 
-      - name: Update kubeconfig
+      - name: Commit GitOps change
         run: |
-          aws eks update-kubeconfig --region "${AWS_REGION}" --name "${CLUSTER_NAME}"
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add "${GITOPS_KUSTOMIZATION}"
+          git commit -m "GitOps: deploy eks-real-app ${SHORT_SHA}" || echo "No changes to commit"
 
-      - name: Deploy (set image + rollout)
+      - name: Push
         run: |
-          kubectl -n "${K8S_NAMESPACE}" set image deployment/"${DEPLOYMENT_NAME}" \
-            "${CONTAINER_NAME}"="${IMAGE_URI}"
-          kubectl -n "${K8S_NAMESPACE}" rollout status deployment/"${DEPLOYMENT_NAME}" --timeout=300s
-          kubectl -n "${K8S_NAMESPACE}" get pods -l app="${DEPLOYMENT_NAME}" -o wide
+          git push
