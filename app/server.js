@@ -1,19 +1,17 @@
 const http = require("http");
 
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { "Content-Type": "application/json" });
+const VERSION = "v3-gitops-test";
 
-  // Dedicated endpoint for CI/CD verification
+const server = http.createServer((req, res) => {
   if (req.url === "/version") {
     return res.end(JSON.stringify({
       service: "eks-real-app",
-      version: "v2-ci-test",
-      gitSha: process.env.GIT_SHA || "not-set",
+      version: VERSION,
       deployedAt: new Date().toISOString()
     }));
   }
 
-  // Default response
+  res.writeHead(200, { "Content-Type": "application/json" });
   res.end(JSON.stringify({
     service: "eks-real-app",
     status: "ok",
@@ -22,6 +20,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(3000, () => {
-  console.log("Server running on port 3000");
+  console.log(`Server running on port 3000 (${VERSION})`);
 });
-
