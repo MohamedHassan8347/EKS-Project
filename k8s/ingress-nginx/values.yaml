@@ -7,6 +7,6 @@ controller:
       additionalLabels:
         release: monitoring
 
-  # IMPORTANT: turn on the controller's request metrics
+  # This must flip the controller flag from --enable-metrics=false to true
   extraArgs:
     enable-metrics: "true"
