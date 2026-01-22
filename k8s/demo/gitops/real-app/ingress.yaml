@@ -3,18 +3,26 @@ kind: Ingress
 metadata:
   name: real-app
   namespace: demo
-  labels:
-    app: real-app
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: app.mhecsproject.com
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: nginx
   tls:
     - hosts:
+        - eks.mhecsproject.com
         - app.mhecsproject.com
       secretName: app-tls
   rules:
+    - host: eks.mhecsproject.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: real-app
+                port:
+                  number: 80
     - host: app.mhecsproject.com
       http:
         paths:
@@ -25,3 +33,4 @@ spec:
                 name: real-app
                 port:
                   number: 80
+
