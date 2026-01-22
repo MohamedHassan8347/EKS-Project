@@ -5,7 +5,8 @@ controller:
     service:
       enabled: true
       type: ClusterIP
-      servicePort: 10254
+      ports:
+        metrics: 10254
 
     serviceMonitor:
       enabled: true
