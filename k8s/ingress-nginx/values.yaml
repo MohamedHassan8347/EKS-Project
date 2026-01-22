@@ -13,3 +13,8 @@ controller:
       namespace: monitoring
       additionalLabels:
         release: monitoring
+
+  # IMPORTANT: the controller currently has --enable-metrics=false
+  # This sets it to true persistently (so Argo/Helm doesn't revert it)
+  extraArgs:
+    enable-metrics: "true"
