@@ -18,6 +18,7 @@ WORKDIR /app
 COPY --from=builder /app/server.js ./server.js
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/public ./public
 
 # Optional hardening: remove npm/npx/corepack/tar so Trivy doesn't flag vulnerable copies
 RUN rm -rf /usr/local/lib/node_modules/npm \
