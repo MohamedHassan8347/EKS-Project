@@ -10,15 +10,24 @@ spec:
     namespace: ingress-nginx
 
   sources:
-    # 1) Helm chart source
     - repoURL: https://kubernetes.github.io/ingress-nginx
       chart: ingress-nginx
       targetRevision: 4.11.3
       helm:
         valueFiles:
           - $values/k8s/ingress-nginx/values.yaml
+        parameters:
+          - name: controller.metrics.enabled
+            value: "true"
+          - name: controller.metrics.serviceMonitor.enabled
+            value: "true"
+          - name: controller.metrics.serviceMonitor.namespace
+            value: "monitoring"
+          - name: controller.metrics.serviceMonitor.additionalLabels.release
+            value: "monitoring"
+          - name: controller.extraArgs.enable-metrics
+            value: "true"
 
-    # 2) Git repo source (provides the values file via $values ref)
     - repoURL: https://github.com/MohamedHassan8347/EKS-Project.git
       targetRevision: main
       ref: values
@@ -29,3 +38,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+
