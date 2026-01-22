@@ -18,7 +18,7 @@ spec:
         valueFiles:
           - $values/k8s/ingress-nginx/values.yaml
 
-    # 2) Your Git repo source (for $values reference)
+    # 2) Git repo source (provides the values file via $values ref)
     - repoURL: https://github.com/MohamedHassan8347/EKS-Project.git
       targetRevision: main
       ref: values
