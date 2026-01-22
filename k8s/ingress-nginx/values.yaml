@@ -2,14 +2,13 @@ controller:
   metrics:
     enabled: true
 
-    # Expose metrics on port 10254
     service:
       enabled: true
       type: ClusterIP
       servicePort: 10254
 
-    # Create a ServiceMonitor for Prometheus Operator
     serviceMonitor:
       enabled: true
       namespace: monitoring
-      additionalLabels: {}
+      additionalLabels:
+        release: monitoring
