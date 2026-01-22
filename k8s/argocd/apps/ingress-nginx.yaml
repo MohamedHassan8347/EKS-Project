@@ -5,12 +5,12 @@ metadata:
   namespace: argocd
 spec:
   project: default
-
   destination:
     server: https://kubernetes.default.svc
     namespace: ingress-nginx
 
   sources:
+    # 1) Helm chart source
     - repoURL: https://kubernetes.github.io/ingress-nginx
       chart: ingress-nginx
       targetRevision: 4.11.3
@@ -18,6 +18,7 @@ spec:
         valueFiles:
           - $values/k8s/ingress-nginx/values.yaml
 
+    # 2) Your Git repo source (for $values reference)
     - repoURL: https://github.com/MohamedHassan8347/EKS-Project.git
       targetRevision: main
       ref: values
@@ -28,4 +29,3 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-
