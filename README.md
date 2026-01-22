@@ -47,6 +47,8 @@ The EKS control plane is managed by AWS, while all workloads and platform toolin
 ### Application
 *Node.js Demo Application*
 
+![Application Interface](images/App-Interface.png)
+
 A containerized Node.js application runs inside the EKS cluster and is exposed externally via the ingress layer.
 
 - Built using a Dockerfile in the app/ directory
@@ -62,6 +64,7 @@ A containerized Node.js application runs inside the EKS cluster and is exposed e
 ### GitOps with ArgoCD
 **ArgoCD**
 
+![ArgoCD](images/argocd.png)
 ArgoCD provides declarative, Git-driven deployments for the platform.
 
 - Kubernetes manifests and Helm values are stored in Git
@@ -98,6 +101,8 @@ These pipelines enforce repeatable and auditable changes across the platform lif
 ### Monitoring & Observability
 **Prometheus**
 
+![Prometheus UI](images/PrometheusUI.png)
+
 Prometheus is deployed to collect metrics from the Kubernetes cluster, including:
 
 - Nodes (CPU, memory, readiness)
@@ -112,6 +117,7 @@ These metrics provide time-series visibility into infrastructure and workload be
 
 ### Grafana Dashboards
 
+![Grafana Dashboard](images/Grafana.png)
 Grafana visualizes Prometheus metrics through custom dashboards, including:
 
 **Cluster & Node Overview**
