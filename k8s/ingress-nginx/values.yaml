@@ -6,3 +6,7 @@ controller:
       namespace: monitoring
       additionalLabels:
         release: monitoring
+
+  # IMPORTANT: turn on the controller's request metrics
+  extraArgs:
+    enable-metrics: "true"
