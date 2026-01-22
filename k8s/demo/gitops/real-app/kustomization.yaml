@@ -12,4 +12,4 @@ resources:
 images:
   - name: 057773388128.dkr.ecr.eu-north-1.amazonaws.com/eks-real-app
     newName: 057773388128.dkr.ecr.eu-north-1.amazonaws.com/eks-real-app
-    newTag: 84e5cda
+    newTag: 92cc5fb
