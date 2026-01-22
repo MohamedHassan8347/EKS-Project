@@ -1,12 +1,9 @@
-cat > app/server.js <<'EOF'
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const client = require("prom-client");
 
-/* =========================
-   Prometheus metrics
-========================= */
+// Prometheus metrics
 client.collectDefaultMetrics();
 
 const httpRequestsTotal = new client.Counter({
@@ -15,120 +12,94 @@ const httpRequestsTotal = new client.Counter({
   labelNames: ["method", "path", "status"],
 });
 
-/* =========================
-   App metadata
-========================= */
-const SERVICE = "eks-real-app";
 const VERSION = process.env.VERSION || "local";
 const GIT_SHA = process.env.GIT_SHA || "not-set";
 
-/* =========================
-   Helpers
-========================= */
-function respond(res, status, body, headers = {}) {
-  res.writeHead(status, headers);
-  res.end(body);
-}
-
-function record(req, path, status) {
+// helper to increment metric safely
+function inc(req, path, status) {
   httpRequestsTotal.inc({
-    method: req.method,
+    method: req.method || "GET",
     path,
     status: String(status),
   });
 }
 
-/* =========================
-   Request handler
-========================= */
+// serve static file from ./public
+function serveStatic(req, res) {
+  const reqPath = (req.url || "/").split("?")[0];
+
+  // default to index.html
+  const filePath =
+    reqPath === "/" ? "/index.html" : reqPath;
+
+  const safePath = path.normalize(filePath).replace(/^(\.\.(\/|\\|$))+/, "");
+  const abs = path.join(__dirname, "public", safePath);
+
+  // basic content types
+  const ext = path.extname(abs).toLowerCase();
+  const contentTypes = {
+    ".html": "text/html; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".js": "application/javascript; charset=utf-8",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".svg": "image/svg+xml",
+    ".ico": "image/x-icon",
+  };
+
+  fs.readFile(abs, (err, data) => {
+    if (err) {
+      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("Not found");
+      inc(req, reqPath, 404);
+      return;
+    }
+    res.writeHead(200, { "Content-Type": contentTypes[ext] || "application/octet-stream" });
+    res.end(data);
+    inc(req, reqPath, 200);
+  });
+}
+
 const server = http.createServer(async (req, res) => {
-  const reqPath = req.url;
+  const pathOnly = (req.url || "/").split("?")[0];
 
-  /* ---- UI homepage ---- */
-  if (reqPath === "/" && req.method === "GET") {
-    const html = `
-<!doctype html>
-<html>
-  <head>
-    <title>EKS GitOps App</title>
-    <style>
-      body { font-family: sans-serif; padding: 40px; }
-      code { background: #eee; padding: 4px; }
-    </style>
-  </head>
-  <body>
-    <h1>🚀 EKS GitOps App</h1>
-    <p>Service: <code>${SERVICE}</code></p>
-    <p>Version: <code>${VERSION}</code></p>
-    <p>Git SHA: <code>${GIT_SHA}</code></p>
-
-    <ul>
-      <li><a href="/health">/health</a></li>
-      <li><a href="/version">/version</a></li>
-      <li><a href="/metrics">/metrics</a></li>
-    </ul>
-  </body>
-</html>
-`;
-    respond(res, 200, html, { "Content-Type": "text/html" });
-    record(req, "/", 200);
+  if (pathOnly === "/health") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ service: "eks-real-app", status: "ok", path: pathOnly }));
+    inc(req, pathOnly, 200);
     return;
   }
 
-  /* ---- Health ---- */
-  if (reqPath === "/health") {
-    respond(
-      res,
-      200,
-      JSON.stringify({ service: SERVICE, status: "ok", path: reqPath }),
-      { "Content-Type": "application/json" }
-    );
-    record(req, reqPath, 200);
-    return;
-  }
-
-  /* ---- Version ---- */
-  if (reqPath === "/version") {
-    respond(
-      res,
-      200,
+  if (pathOnly === "/version") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(
       JSON.stringify({
-        service: SERVICE,
+        service: "eks-real-app",
         version: VERSION,
         gitSha: GIT_SHA,
         deployedAt: new Date().toISOString(),
-      }),
-      { "Content-Type": "application/json" }
+      })
     );
-    record(req, reqPath, 200);
+    inc(req, pathOnly, 200);
     return;
   }
 
-  /* ---- Metrics ---- */
-  if (reqPath === "/metrics") {
+  if (pathOnly === "/metrics") {
     try {
-      const metrics = await client.register.metrics();
-      respond(res, 200, metrics, {
-        "Content-Type": client.register.contentType,
-      });
-      record(req, reqPath, 200);
-    } catch (err) {
-      respond(res, 500, "metrics error");
-      record(req, reqPath, 500);
+      res.writeHead(200, { "Content-Type": client.register.contentType });
+      res.end(await client.register.metrics());
+      inc(req, pathOnly, 200);
+    } catch (e) {
+      res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("metrics error");
+      inc(req, pathOnly, 500);
     }
     return;
   }
 
-  /* ---- 404 ---- */
-  respond(res, 404, "Not Found");
-  record(req, reqPath, 404);
+  // serve UI/static
+  serveStatic(req, res);
 });
 
-/* =========================
-   Startup
-========================= */
-server.listen(3000, () => {
-  console.log("Server running on port 3000");
-});
-EOF
-
+server.listen(3000, () => console.log("Server running on port 3000"));
