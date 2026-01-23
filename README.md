@@ -48,7 +48,7 @@ The EKS control plane is managed by AWS, while all workloads and platform toolin
 ### Application
 *Node.js Demo Application*
 
-![Application Interface](images/App-Interface.png)
+![Application Interface](images/AppUI.png)
 
 A containerized Node.js application runs inside the EKS cluster and is exposed externally via the ingress layer.
 
