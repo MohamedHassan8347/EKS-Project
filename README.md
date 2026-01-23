@@ -28,6 +28,7 @@ The platform is designed to resemble real production environments and focuses on
 ### Architecture
 *Architecture Overview*
 
+![Architecture Diagram](images/Architecture-diagram.png)
 - A custom AWS VPC hosts an Amazon EKS cluster
 
 - EKS worker nodes run application workloads and platform services
