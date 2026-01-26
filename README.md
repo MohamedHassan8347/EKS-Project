@@ -65,7 +65,7 @@ A containerized Node.js application runs inside the EKS cluster and is exposed e
 ### GitOps with ArgoCD
 **ArgoCD**
 
-![ArgoCD](images/argocd.png)
+![ArgoCD](images/argocdui.png)
 ArgoCD provides declarative, Git-driven deployments for the platform.
 
 - Kubernetes manifests and Helm values are stored in Git
@@ -118,7 +118,7 @@ These metrics provide time-series visibility into infrastructure and workload be
 
 ### Grafana Dashboards
 
-![Grafana Dashboard](images/Grafana.png)
+![Grafana Dashboard](images/grafanaui.png)
 Grafana visualizes Prometheus metrics through custom dashboards, including:
 
 **Cluster & Node Overview**
