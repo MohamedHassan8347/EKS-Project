@@ -117,6 +117,8 @@ helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
   -f k8s/monitoring/values-kube-prometheus-stack.yaml \
   --wait --timeout 10m
 
+```
+
 
 **Prometheus**
 
@@ -151,7 +153,7 @@ Grafana visualizes Prometheus metrics through custom dashboards, including:
 
 Grafana is exposed via NGINX Ingress using a custom hostname and HTTPS.
 
-- URL: https://grafana.<your-domain>
+- URL: https://grafana.mhecsproject.com
 - Ingress Controller: ingress-nginx
 - TLS: Managed by cert-manager (Let’s Encrypt)
 - DNS: Automatically created via ExternalDNS (Route53)
