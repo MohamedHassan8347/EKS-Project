@@ -103,7 +103,9 @@ These pipelines enforce repeatable and auditable changes across the platform lif
 
 ## Monitoring (Prometheus + Grafana)
 
-Deployed using Helm chart: kube-prometheus-stack.
+Deployed using Helm chart: kube-prometheus-stack with default values.
+
+Grafana and Prometheus are exposed via dedicated Ingress manifests in `k8s/monitoring/` with TLS issued by cert-manager and DNS records managed automatically by ExternalDNS.
 
 ### Install/Upgrade
 ```bash
