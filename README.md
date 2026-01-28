@@ -235,6 +235,8 @@ These dashboards provide operational insight into cluster stability, performance
 
 - AWS credentials configured for local development
 
+- Cluster access steps: docs/cluster-access.md 
+
 ### Future Enhancements
 **EKS API Endpoint Security**
 
