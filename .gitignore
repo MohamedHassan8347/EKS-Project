@@ -44,3 +44,12 @@ app/node_modules/
 # (REMOVE these two lines if you DO want them in GitOps)
 # helm/monitoring/
 # k8s/monitoring/
+
+# Generated helm manifests can include Secrets
+k8s/**/rendered-manifests*.yaml
+k8s/**/manifest*.yaml
+
+# local scratch
+*.log
+.DS_Store
+
