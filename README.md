@@ -100,6 +100,24 @@ Builds the application container, performs security scanning, pushes images, and
 These pipelines enforce repeatable and auditable changes across the platform lifecycle.
 
 ### Monitoring & Observability
+
+## Monitoring (Prometheus + Grafana)
+
+Deployed using Helm chart: kube-prometheus-stack.
+
+### Install/Upgrade
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+kubectl create namespace monitoring || true
+
+helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+  -n monitoring \
+  -f k8s/monitoring/values-kube-prometheus-stack.yaml \
+  --wait --timeout 10m
+
+
 **Prometheus**
 
 ![Prometheus UI](images/PrometheusUI.png)
@@ -128,6 +146,18 @@ Grafana visualizes Prometheus metrics through custom dashboards, including:
 - CPU usage per node
 
 - Memory usage per node
+
+### Access
+
+Grafana is exposed via NGINX Ingress using a custom hostname and HTTPS.
+
+- URL: https://grafana.<your-domain>
+- Ingress Controller: ingress-nginx
+- TLS: Managed by cert-manager (Let’s Encrypt)
+- DNS: Automatically created via ExternalDNS (Route53)
+
+Authentication uses the default Grafana admin user.  
+The admin password is stored in a Kubernetes Secret created by the Helm chart.
 
 **Pod Health**
 
