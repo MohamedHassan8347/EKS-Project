@@ -149,14 +149,27 @@ Grafana visualizes Prometheus metrics through custom dashboards, including:
 
 - Memory usage per node
 
+
 ### Access
 
-Grafana is exposed via NGINX Ingress using a custom hostname and HTTPS.
+Grafana and Prometheus are exposed via NGINX Ingress using custom hostnames and HTTPS.
 
+**Grafana**
 - URL: https://grafana.mhecsproject.com
 - Ingress Controller: ingress-nginx
-- TLS: Managed by cert-manager (Let’s Encrypt)
-- DNS: Automatically created via ExternalDNS (Route53)
+- TLS: cert-manager (Let’s Encrypt) using ClusterIssuer `letsencrypt-prod`
+- DNS: ExternalDNS automatically manages the Route53 record
+- TLS secret: `grafana-tls`
+
+**Prometheus**
+- URL: https://prometheus.mhecsproject.com
+- Ingress Controller: ingress-nginx
+- TLS: cert-manager (Let’s Encrypt) using ClusterIssuer `letsencrypt-prod`
+- DNS: ExternalDNS automatically manages the Route53 record
+- TLS secret: `prometheus-tls`
+
+Authentication:
+- Grafana uses the default admin user; the admin password is stored in a Kubernetes Secret created by the Helm chart.
 
 Authentication uses the default Grafana admin user.  
 The admin password is stored in a Kubernetes Secret created by the Helm chart.
